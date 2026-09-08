@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#F59E0B">
+  <title>Flag Explorer</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌍%3C/text%3E%3C/svg%3E">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FFFBEB; color: #1F2937; overflow-x: hidden;
+    }
+    .app { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: white; padding: 1rem; text-align: center;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .header h1 { margin: 0; font-size: 1.5rem; }
+    .back-btn {
+      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer;
+    }
+    
+    /* Navigation */
+    .nav {
+      display: flex; justify-content: space-around; padding: 0.5rem;
+      background: white; border-top: 1px solid #E5E7EB;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      max-width: 430px; margin: 0 auto;
+    }
+    .nav-btn {
+      background: none; border: none; font-size: 1.5rem; cursor: pointer;
+      padding: 0.5rem; border-radius: 12px; transition: transform 0.1s;
+    }
+    .nav-btn:active { transform: scale(0.9); }
+    .nav-btn.active { background: #FEF3C7; }
+    
+    /* Views */
+    .view { display: none; padding: 1rem 1rem 5rem; animation: fadeIn 0.3s; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+    
+    /* Home */
+    .hero { text-align: center; padding: 2rem 1rem; }
+    .hero-emoji { font-size: 4rem; margin-bottom: 0.5rem; }
+    .menu-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 0 1rem;
+    }
+    .menu-card {
+      background: white; border-radius: 20px; padding: 1.5rem; text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s; border: 2px solid transparent;
+    }
+    .menu-card:active { transform: scale(0.95); }
+    .menu-card:hover { box-shadow: 0 8px 12px rgba(0,0,0,0.1); border-color: #F59E0B; }
+    .menu-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .menu-label { font-weight: 600; font-size: 1.1rem; color: #374151; }
+    
+    /* Explorer */
+    .continent-filter {
+      display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.5rem 0; margin-bottom: 1rem;
+      scrollbar-width: none;
+    }
+    .continent-filter::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      background: white; border: 2px solid #E5E7EB; border-radius: 20px;
+      padding: 0.4rem 1rem; white-space: nowrap; cursor: pointer; font-weight: 500;
+    }
+    .filter-chip.active { background: #F59E0B; color: white; border-color: #F59E0B; }
+    
+    .flag-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
+    }
+    .flag-card {
+      background: white; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;
+      transition: transform 0.2s; aspect-ratio: 1; display: flex; flex-direction: column;
+    }
+    .flag-card:active { transform: scale(0.95); }
+    .flag-card.locked { opacity: 0.4; filter: grayscale(0.8); }
+    .flag-img {
+      width: 100%; height: 70%; object-fit: cover; background: #F3F4F6;
+    }
+    .flag-name {
+      padding: 0.3rem; text-align: center; font-size: 0.75rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    
+    /* Detail */
+    .detail-flag {
+      width: 100%; max-height: 200px; object-fit: contain;
+      background: linear-gradient(135deg, #E5E7EB, #F3F4F6);
+      border-radius: 20px; padding: 1rem; margin-bottom: 1rem;
+    }
+    .info-grid {
+      display: grid; gap: 0.75rem;
+    }
+    .info-card {
+      background: white; border-radius: 16px; padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .info-label { font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-size: 1.1rem; font-weight: 600; color: #111827; margin-top: 0.25rem; }
+    .map-container {
+      background: #DBEAFE; border-radius: 16px; height: 150px; position: relative;
+      overflow: hidden; margin-top: 0.5rem;
+    }
+    .map-dot {
+      position: absolute; width: 12px; height: 12px; background: #EF4444;
+      border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #EF4444;
+      transform: translate(-50%, -50%);
+    }
+    .history-btn {
+      width: 100%; padding: 1rem; background: #4F46E5; color: white;
+      border: none; border-radius: 16px; font-size: 1rem; font-weight: 600;
+      margin-top: 1rem; cursor: pointer;
+    }
+    .history-text {
+      background: white; padding: 1rem; border-radius: 16px; margin-top: 0.5rem;
+      line-height: 1.6; display: none;
+    }
+    
+    /* Quiz */
+    .quiz-progress {
+      display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1rem;
+    }
+    .progress-dot { width: 10px; height: 10px; border-radius: 50%; background: #D1D5DB; }
+    .progress-dot.correct { background: #10B981; }
+    .progress-dot.wrong { background: #EF4444; }
+    
+    .quiz-flag { width: 100%; max-height: 180px; object-fit: contain; margin: 1rem 0; }
+    .quiz-question { text-align: center; font-size: 1.3rem; font-weight: 700; margin-bottom: 1.5rem; }
+    
+    .choice-grid { display: grid; gap: 0.75rem; }
+    .choice-btn {
+      background: white; border: 3px solid #E5E7EB; border-radius: 16px;
+      padding: 1rem; font-size: 1.1rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .choice-btn:active { transform: scale(0.98); }
+    .choice-btn.correct { border-color: #10B981; background: #D1FAE5; }
+    .choice-btn.wrong { border-color: #EF4444; background: #FEE2E2; }
+    .choice-btn:disabled { opacity: 0.7; cursor: default; }
+    
+    .quiz-result {
+      text-align: center; padding: 2rem;
+    }
+    .stars { font-size: 3rem; margin: 1rem 0; }
+    .btn-primary {
+      background: #F59E0B; color: white; border: none; border-radius: 16px;
+      padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; cursor: pointer;
+      width: 100%; margin-top: 1rem;
+    }
+    
+    /* Passport */
+    .passport-header { text-align: center; margin-bottom: 1.5rem; }
+    .passport-stars { font-size: 2rem; }
+    .badge-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;
+    }
+    .badge {
+      aspect-ratio: 1; background: white; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .badge.locked { filter: grayscale(1); opacity: 0.3; }
+    
+    /* Settings */
+    .setting-row {
+      background: white; border-radius: 16px; padding: 1rem;
+      margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    .toggle {
+      width: 50px; height: 28px; background: #D1D5DB; border-radius: 14px;
+      position: relative; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle.active { background: #10B981; }
+    .toggle-knob {
+      position: absolute; top: 2px; left: 2px; width: 24px; height: 24px;
+      background: white; border-radius: 50%; transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.active .toggle-knob { transform: translateX(22px); }
+    
+    .unlock-banner {
+      background: linear-gradient(90deg, #4F46E5, #7C3AED);
+      color: white; padding: 1rem; border-radius: 16px; text-align: center;
+      margin-bottom: 1rem; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <button class="back-btn" onclick="goBack()" style="display:none" id="backBtn">←</button>
+      <h1>🌍 Flag Explorer</h1>
+    </div>
+    
+    <!-- Views -->
+    <div class="view active" id="view-home">
+      <div class="hero">
+        <div class="hero-emoji">🌎</div>
+        <h2>Explore the World!</h2>
+        <p>Learn flags, capitals, and fun facts.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card" onclick="showView('explorer')">
+          <div class="menu-icon">🏳️</div>
+          <div class="menu-label">Explore</div>
+        </div>
+        <div class="menu-card" onclick="showView('quiz')">
+          <div class="menu-icon">🎮</div>
+          <div class="menu-label">Quiz</div>
+        </div>
+        <div class="menu-card" onclick="showView('passport')">
+          <div class="menu-icon">🛂</div>
+          <div class="menu-label">Passport</div>
+        </div>
+        <div class="menu-card" onclick="showView('settings')">
+          <div class="menu-icon">⚙️</div>
+          <div class="menu-label">Settings</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="view" id="view-explorer">
+      <div class="continent-filter" id="continentFilter">
+        <div class="filter-chip active" onclick="filterContinent('all')">🌍 All</div>
+        <div class="filter-chip" onclick="filterContinent('Africa')">🦁 Africa</div>
+        <div class="filter-chip" onclick="filterContinent('Americas')">🦅 Americas</div>
+        <div class="filter-chip" onclick="filterContinent('Asia')">🐉 Asia</div>
+        <div class="filter-chip" onclick="filterContinent('Europe')">🏰 Europe</div>
+        <div class="filter-chip" onclick="filterContinent('Oceania')">🐨 Oceania</div>
+      </div>
+      <div id="unlockBanner"></div>
+      <div class="flag-grid" id="flagGrid"></div>
+    </div>
+    
+    <div class="view" id="view-detail">
+      <img class="detail-flag" id="detailFlag" src="" alt="">
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-label">Country</div>
+          <div class="info-value" id="detailName"></div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">Capital</div>
+          <div class="info-value" id="detailCapital"></div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">Continent</div>
+          <div class="info-value" id="detailContinent"></div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">Population</div>
+          <div class="info-value" id="detailPopulation"></div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">Languages</div>
+          <div class="info-value" id="detailLanguages"></div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">Location</div>
+          <div class="map-container" id="mapContainer">
+            <svg viewBox="0 0 200 100" style="width:100%;height:100%">
+              <rect fill="#BFDBFE" width="200" height="100"/>
+              <!-- Simplified world map paths -->
+              <path fill="#60A5FA" d="M20,30 Q40,20 60,30 T100,25 T140,30 T180,35 V70 Q160,80 140,75 T100,80 T60,75 T20,70 Z" opacity="0.3"/>
+              <path fill="#3B82F6" d="M45,35 Q55,32 65,35 T85,40 Q80,55 70,60 T50,55 Q45,45 45,35" opacity="0.4"/>
+            </svg>
+            <div class="map-dot" id="mapDot"></div>
+          </div>
+        </div>
+      </div>
+      <button class="history-btn" onclick="toggleHistory()">📖 Read History</button>
+      <div class="history-text" id="historyText"></div>
+    </div>
+    
+    <div class="view" id="view-quiz">
+      <div id="quizSetup">
+        <h2 style="text-align:center">🎮 Quiz Time!</h2>
+        <p style="text-align:center;color:#6B7280">Answer 5 questions to earn stars!</p>
+        <button class="btn-primary" onclick="startQuiz()">Start Quiz</button>
+      </div>
+      <div id="quizActive" style="display:none">
+        <div class="quiz-progress" id="quizProgress"></div>
+        <img class="quiz-flag" id="quizFlag" src="" style="display:none">
+        <div class="quiz-question" id="quizQuestion"></div>
+        <div class="choice-grid" id="quizChoices"></div>
+      </div>
+      <div class="quiz-result" id="quizResult" style="display:none">
+        <div class="stars" id="resultStars"></div>
+        <h2 id="resultTitle">Great Job!</h2>
+        <p id="resultScore"></p>
+        <button class="btn-primary" onclick="startQuiz()">Play Again</button>
+        <button class="btn-primary" onclick="showView('home')" style="background:#4B5563;margin-top:0.5rem">Home</button>
+      </div>
+    </div>
+    
+    <div class="view" id="view-passport">
+      <div class="passport-header">
+        <h2>🛂 My Passport</h2>
+        <div class="passport-stars" id="passportStars">⭐ 0</div>
+        <p id="passportLevel">Explorer Level 1</p>
+      </div>
+      <div id="passportUnlocks"></div>
+      <h3>Collected Stickers</h3>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </div>
+    
+    <div class="view" id="view-settings">
+      <h2>⚙️ Settings</h2>
+      <div class="setting-row">
+        <span>🔊 Sound Effects</span>
+        <div class="toggle active" onclick="toggleSetting(this, 'sound')"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="setting-row">
+        <span>🎯 Difficulty</span>
+        <span id="difficultyDisplay" style="font-weight:600;color:#F59E0B">Easy</span>
+      </div>
+      <div class="setting-row" onclick="cycleDifficulty()" style="cursor:pointer">
+        <span>🔄 Change Difficulty</span>
+        <span style="color:#6B7280">Tap to cycle →</span>
+      </div>
+      <div class="setting-row" onclick="resetProgress()" style="cursor:pointer;color:#DC2626">
+        <span>🗑️ Reset All Progress</span>
+      </div>
+    </div>
+    
+    <!-- Bottom Nav -->
+    <div class="nav">
+      <button class="nav-btn active" onclick="showView('home')">🏠</button>
+      <button class="nav-btn" onclick="showView('explorer')">🏳️</button>
+      <button class="nav-btn" onclick="showView('quiz')">🎮</button>
+      <button class="nav-btn" onclick="showView('passport')">🛂</button>
+    </div>
+  </div>
+
+<script>
+// ==================== CONFIG ====================
+const API_URL = '';  // Same origin — Pages serves API and frontend together
+let countries = [];
+let states = [];
+let currentCountry = null;
+let quizState = { questions: [], current: 0, score: 0 };
+let settings = { sound: true, difficulty: 'easy' };
+let progress = { quizzesCompleted: 0, totalStars: 0, unlockedAll: false, unlockedStates: false, badges: [] };
+
+// ==================== INIT ====================
+async function init() {
+  loadProgress();
+  await loadCountries();
+  renderFlags();
+  updatePassport();
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem('flagExplorerProgress');
+  if (saved) progress = JSON.parse(saved);
+}
+
+function saveProgress() {
+  localStorage.setItem('flagExplorerProgress', JSON.stringify(progress));
+}
+
+async function loadCountries() {
+  try {
+    const res = await fetch(`${API_URL}/api/countries`);
+    countries = await res.json();
+    // Parse languages
+    countries.forEach(c => {
+      if (typeof c.languages === 'string') {
+        try { c.languages = JSON.parse(c.languages); } catch(e) { c.languages = []; }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to load countries', e);
+    countries = [];
+  }
+}
+
+// ==================== NAVIGATION ====================
+function showView(viewName) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${viewName}`).classList.add('active');
+  document.getElementById('backBtn').style.display = viewName === 'home' ? 'none' : 'block';
+  
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const navMap = { home: 0, explorer: 1, quiz: 2, passport: 3 };
+  if (navMap[viewName] !== undefined) {
+    document.querySelectorAll('.nav-btn')[navMap[viewName]]?.classList.add('active');
+  }
+  
+  if (viewName === 'passport') updatePassport();
+  if (viewName === 'explorer') renderFlags();
+}
+
+function goBack() { showView('home'); }
+
+// ==================== EXPLORER ====================
+let currentFilter = 'all';
+
+function filterContinent(continent) {
+  currentFilter = continent;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  renderFlags();
+}
+
+function renderFlags() {
+  const grid = document.getElementById('flagGrid');
+  const banner = document.getElementById('unlockBanner');
+  grid.innerHTML = '';
+  
+  // Check unlocks
+  if (!progress.unlockedAll && progress.quizzesCompleted >= 3) {
+    progress.unlockedAll = true; saveProgress();
+  }
+  if (!progress.unlockedStates && progress.quizzesCompleted >= 10) {
+    progress.unlockedStates = true; saveProgress();
+  }
+  
+  if (!progress.unlockedAll) {
+    banner.innerHTML = `<div class="unlock-banner">🔒 Complete ${3 - progress.quizzesCompleted} more quizzes to unlock all countries!</div>`;
+  } else if (!progress.unlockedStates) {
+    banner.innerHTML = `<div class="unlock-banner">🇺🇸 Complete ${10 - progress.quizzesCompleted} more quizzes to unlock US States!</div>`;
+  } else {
+    banner.innerHTML = '';
+  }
+  
+  let display = countries.filter(c => {
+    if (currentFilter !== 'all' && c.continent !== currentFilter) return false;
+    if (!progress.unlockedAll && !c.is_famous) return false;
+    return true;
+  });
+  
+  display.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'flag-card';
+    card.innerHTML = `
+      <img class="flag-img" src="${c.flag_png}" alt="${c.name}" loading="lazy">
+      <div class="flag-name">${c.name}</div>
+    `;
+    card.onclick = () => showDetail(c);
+    grid.appendChild(card);
+  });
+}
+
+function showDetail(country) {
+  currentCountry = country;
+  document.getElementById('detailFlag').src = country.flag_png;
+  document.getElementById('detailName').textContent = country.name;
+  document.getElementById('detailCapital').textContent = country.capital || 'Unknown';
+  document.getElementById('detailContinent').textContent = country.continent;
+  document.getElementById('detailPopulation').textContent = formatPopulation(country.population);
+  document.getElementById('detailLanguages').textContent = 
+    (country.languages?.slice(0, 2) || ['Unknown']).join(', ');
+  
+  // Map dot positioning (Mercator projection)
+  const x = ((country.lng + 180) / 360) * 100;
+  const latRad = country.lat * Math.PI / 180;
+  const y = (1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad)) / Math.PI) / 2 * 100;
+  document.getElementById('mapDot').style.left = x + '%';
+  document.getElementById('mapDot').style.top = y + '%';
+  
+  document.getElementById('historyText').style.display = 'none';
+  document.getElementById('historyText').textContent = '';
+  
+  showView('detail');
+}
+
+function formatPopulation(pop) {
+  if (!pop) return 'Unknown';
+  if (pop > 1000000) return `About ${Math.round(pop/1000000)} million people`;
+  if (pop > 1000) return `About ${Math.round(pop/1000)} thousand people`;
+  return `${pop} people`;
+}
+
+async function toggleHistory() {
+  const el = document.getElementById('historyText');
+  if (el.style.display === 'block') {
+    el.style.display = 'none'; return;
+  }
+  if (!el.textContent) {
+    el.textContent = 'Loading history...';
+    try {
+      const res = await fetch(`${API_URL}/api/history/${currentCountry.code.toLowerCase()}`);
+      const data = await res.json();
+      el.textContent = data.history || 'History coming soon!';
+    } catch (e) {
+      el.textContent = 'Could not load history right now.';
+    }
+  }
+  el.style.display = 'block';
+}
+
+// ==================== QUIZ ====================
+function startQuiz() {
+  const pool = countries.filter(c => progress.unlockedAll || c.is_famous);
+  if (pool.length < 4) return alert('Need more countries loaded!');
+  
+  quizState = { questions: [], current: 0, score: 0 };
+  
+  // Generate 5 questions
+  for (let i = 0; i < 5; i++) {
+    const target = pool[Math.floor(Math.random() * pool.length)];
+    const type = getQuestionType();
+    quizState.questions.push(generateQuestion(target, pool, type));
+  }
+  
+  document.getElementById('quizSetup').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'none';
+  document.getElementById('quizActive').style.display = 'block';
+  renderQuestion();
+}
+
+function getQuestionType() {
+  const types = ['name-to-flag', 'flag-to-name'];
+  if (settings.difficulty === 'medium') types.push('capital');
+  if (settings.difficulty === 'hard') types.push('capital', 'continent', 'language');
+  return types[Math.floor(Math.random() * types.length)];
+}
+
+function generateQuestion(target, pool, type) {
+  const choices = [target];
+  while (choices.length < (settings.difficulty === 'easy' ? 2 : 4)) {
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    if (!choices.find(c => c.code === r.code)) choices.push(r);
+  }
+  choices.sort(() => Math.random() - 0.5);
+  
+  let question, correctIdx;
+  
+  switch(type) {
+    case 'name-to-flag':
+      question = `Which flag belongs to ${target.name}?`;
+      correctIdx = choices.findIndex(c => c.code === target.code);
+      return { question, choices, correctIdx, type: 'image', images: choices.map(c => c.flag_png) };
+    case 'flag-to-name':
+      question = `Which country is this?`;
+      correctIdx = choices.findIndex(c => c.code === target.code);
+      return { question, choices, correctIdx, type: 'flag', flag: target.flag_png };
+    case 'capital':
+      question = `What is the capital of ${target.name}?`;
+      correctIdx = choices.findIndex(c => c.code === target.code);
+      return { question, choices, correctIdx, type: 'text', labels: choices.map(c => c.capital || 'Unknown') };
+    case 'continent':
+      question = `Which continent is ${target.name} on?`;
+      correctIdx = choices.findIndex(c => c.code === target.code);
+      return { question, choices, correctIdx, type: 'text', labels: choices.map(c => c.continent) };
+    case 'language':
+      const lang = target.languages?.[0] || 'Unknown';
+      question = `What is a main language of ${target.name}?`;
+      // For language, we need different wrong answers
+      const wrongLangs = ['Spanish', 'French', 'German', 'Arabic', 'Portuguese', 'Russian', 'Japanese', 'Italian']
+        .filter(l => l !== lang).slice(0, 3);
+      const langChoices = [lang, ...wrongLangs].sort(() => Math.random() - 0.5);
+      correctIdx = langChoices.indexOf(lang);
+      return { question, choices: langChoices, correctIdx, type: 'text', labels: langChoices };
+  }
+}
+
+function renderQuestion() {
+  const q = quizState.questions[quizState.current];
+  const container = document.getElementById('quizChoices');
+  const flagImg = document.getElementById('quizFlag');
+  
+  // Progress dots
+  const progressEl = document.getElementById('quizProgress');
+  progressEl.innerHTML = quizState.questions.map((_, i) => {
+    let cls = 'progress-dot';
+    if (i < quizState.current) {
+      const wasCorrect = quizState.questions[i].correct;
+      cls += wasCorrect ? ' correct' : ' wrong';
+    }
+    return `<div class="${cls}"></div>`;
+  }).join('');
+  
+  document.getElementById('quizQuestion').textContent = q.question;
+  
+  if (q.type === 'flag') {
+    flagImg.src = q.flag; flagImg.style.display = 'block';
+  } else {
+    flagImg.style.display = 'none';
+  }
+  
+  container.innerHTML = '';
+  q.labels = q.labels || q.choices.map(c => c.name || c);
+  q.images = q.images || [];
+  
+  q.choices.forEach((choice, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    
+    if (q.type === 'image') {
+      btn.innerHTML = `<img src="${q.images[i]}" style="height:60px;width:auto;display:block;margin:0 auto">`;
+    } else {
+      btn.textContent = q.labels[i];
+    }
+    
+    btn.onclick = () => answerQuestion(i, btn);
+    container.appendChild(btn);
+  });
+}
+
+function answerQuestion(idx, btn) {
+  const q = quizState.questions[quizState.current];
+  const correct = idx === q.correctIdx;
+  const buttons = document.querySelectorAll('.choice-btn');
+  
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.correctIdx) b.classList.add('correct');
+    else if (i === idx && !correct) b.classList.add('wrong');
+  });
+  
+  q.correct = correct;
+  if (correct) quizState.score++;
+  
+  setTimeout(() => {
+    quizState.current++;
+    if (quizState.current >= quizState.questions.length) {
+      endQuiz();
+    } else {
+      renderQuestion();
+    }
+  }, correct ? 800 : 1500);
+}
+
+function endQuiz() {
+  document.getElementById('quizActive').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'block';
+  
+  const percentage = quizState.score / quizState.questions.length;
+  let stars = 1;
+  if (percentage >= 0.6) stars = 2;
+  if (percentage === 1) stars = 3;
+  
+  progress.quizzesCompleted++;
+  progress.totalStars += stars;
+  
+  // Add badges for countries tested
+  quizState.questions.forEach(q => {
+    const code = q.choices[q.correctIdx]?.code || q.choices[q.correctIdx];
+    if (code && !progress.badges.includes(code)) progress.badges.push(code);
+  });
+  
+  saveProgress();
+  
+  document.getElementById('resultStars').textContent = '⭐'.repeat(stars);
+  document.getElementById('resultTitle').textContent = 
+    percentage === 1 ? 'Perfect Score!' : percentage >= 0.6 ? 'Great Job!' : 'Good Try!';
+  document.getElementById('resultScore').textContent = 
+    `You got ${quizState.score} out of ${quizState.questions.length} right!`;
+}
+
+// ==================== PASSPORT ====================
+function updatePassport() {
+  document.getElementById('passportStars').textContent = `⭐ ${progress.totalStars}`;
+  
+  let level = 'Explorer Level 1';
+  if (progress.quizzesCompleted >= 3) level = 'Explorer Level 2';
+  if (progress.quizzesCompleted >= 10) level = 'World Master';
+  document.getElementById('passportLevel').textContent = level;
+  
+  const unlocks = document.getElementById('passportUnlocks');
+  if (progress.unlockedAll && progress.unlockedStates) {
+    unlocks.innerHTML = '<div class="unlock-banner">🎉 All content unlocked!</div>';
+  }
+  
+  const grid = document.getElementById('badgeGrid');
+  grid.innerHTML = '';
+  const allCodes = countries.map(c => c.code);
+  allCodes.forEach(code => {
+    const badge = document.createElement('div');
+    badge.className = 'badge' + (progress.badges.includes(code) ? '' : ' locked');
+    const country = countries.find(c => c.code === code);
+    badge.textContent = country ? country.flag_png ? '🏳️' : '❓' : '❓';
+    if (progress.badges.includes(code) && country) {
+      badge.innerHTML = `<img src="${country.flag_png}" style="width:40px;height:30px;object-fit:cover;border-radius:4px">`;
+    }
+    grid.appendChild(badge);
+  });
+}
+
+// ==================== SETTINGS ====================
+function toggleSetting(el, key) {
+  el.classList.toggle('active');
+  settings[key] = el.classList.contains('active');
+}
+
+function cycleDifficulty() {
+  const levels = ['easy', 'medium', 'hard'];
+  const idx = levels.indexOf(settings.difficulty);
+  settings.difficulty = levels[(idx + 1) % levels.length];
+  document.getElementById('difficultyDisplay').textContent = 
+    settings.difficulty.charAt(0).toUpperCase() + settings.difficulty.slice(1);
+}
+
+function resetProgress() {
+  if (confirm('Reset all progress? This cannot be undone!')) {
+    progress = { quizzesCompleted: 0, totalStars: 0, unlockedAll: false, unlockedStates: false, badges: [] };
+    saveProgress();
+    updatePassport();
+    alert('Progress reset!');
+  }
+}
+
+// ==================== START ====================
+init();
+</script>
+</body>
+</html>
