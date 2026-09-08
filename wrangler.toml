@@ -1,0 +1,10 @@
+name = "flag-explorer"
+compatibility_date = "2026-08-16"
+
+# Tell Pages this is a Pages project, not a Worker
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "flag-explorer-db"
+database_id = "YOUR_DATABASE_ID_HERE"  # Replace with your actual D1 database ID
